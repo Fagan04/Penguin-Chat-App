@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/fagan04/penguin-chat-app/user-service/models"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type UserRepository struct {

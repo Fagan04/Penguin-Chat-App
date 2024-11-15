@@ -6,12 +6,13 @@ import (
 	"github.com/fagan04/penguin-chat-app/user-service/handlers"
 	"github.com/fagan04/penguin-chat-app/user-service/repository"
 	"github.com/gorilla/mux"
+	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
 )
 
 func main() {
-	db, err := sql.Open("sqlite", "./database/user.db")
+	db, err := sql.Open("sqlite3", "./database/user.db")
 	if err != nil {
 		log.Fatalf("failed to connect to SQLite database: %v", err)
 	}
