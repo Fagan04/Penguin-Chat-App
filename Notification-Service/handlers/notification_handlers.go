@@ -18,5 +18,10 @@ func GetNewMessageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(messages)
+	err = json.NewEncoder(w).Encode(messages)
+	if err != nil {
+		http.Error(w, "Failed to encode messages", http.StatusInternalServerError)
+		return
+	}
+
 }
