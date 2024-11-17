@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+
 	"github.com/fagan04/penguin-chat-app/user-service/auth"
 	"github.com/fagan04/penguin-chat-app/user-service/models"
 	"github.com/fagan04/penguin-chat-app/user-service/repository"
@@ -38,8 +39,10 @@ func (handler *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Login successful"))
-
+	_, err = w.Write([]byte("Login successful"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (handler *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +60,7 @@ func (handler *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(map[string]string{"message": "User created successfully!"})
 	if err != nil {
+		http.Error(w, "Failed to send response", http.StatusInternalServerError)
 		return
 	}
 }

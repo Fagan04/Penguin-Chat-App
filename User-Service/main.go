@@ -16,6 +16,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to connect to SQLite database: %v", err)
 	}
+
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT NOT NULL,
+			email TEXT NOT NULL,
+			password TEXT NOT NULL
+    )
+`)
+	if err != nil {
+		log.Fatalf("failed to create table: %v", err)
+	}
+
 	defer db.Close()
 
 	userRepo := &repository.UserRepository{DB: db}

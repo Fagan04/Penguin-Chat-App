@@ -2,11 +2,11 @@ package repository
 
 import (
 	"database/sql"
-	"github.com/fagan04/penguin-chat-app/notification-service/model"
+	"github.com/fagan04/penguin-chat-app/notification-service/models"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func FetchNewMessages(userID string) ([]model.Notification, error) {
+func FetchNewMessages(userID string) ([]models.Notification, error) {
 	db, err := sql.Open("sqlite3", "./notifications.db")
 	if err != nil {
 		return nil, err
@@ -19,9 +19,9 @@ func FetchNewMessages(userID string) ([]model.Notification, error) {
 	}
 	defer rows.Close()
 
-	var notifications []model.Notification
+	var notifications []models.Notification
 	for rows.Next() {
-		var notif model.Notification
+		var notif models.Notification
 		if err := rows.Scan(&notif.ID, &notif.UserID, &notif.Message, &notif.IsNew, &notif.Timestamp); err != nil {
 			return nil, err
 		}
