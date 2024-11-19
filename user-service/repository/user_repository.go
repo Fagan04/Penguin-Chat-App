@@ -3,7 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
-	"github.com/fagan04/penguin-chat-app/user-service/models"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/models"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -12,7 +12,7 @@ type UserRepository struct {
 }
 
 func (repo *UserRepository) CreateUser(user models.User) error {
-	_, err := repo.DB.Exec("INSERT INTO users (id, username, email, password) VALUES ($1, $2, $3, $4)", user.ID, user.Username, user.Email, user.Password)
+	_, err := repo.DB.Exec("INSERT INTO users (id, username, email, password) VALUES (?, ?, ?, ?)", user.ID, user.Username, user.Email, user.Password)
 	return err
 }
 

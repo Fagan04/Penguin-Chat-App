@@ -2,9 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"github.com/fagan04/penguin-chat-app/user-service/auth"
-	"github.com/fagan04/penguin-chat-app/user-service/handlers"
-	"github.com/fagan04/penguin-chat-app/user-service/repository"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/auth"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/handlers"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/repository"
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
 	"log"
@@ -13,8 +13,9 @@ import (
 
 func main() {
 	db, err := sql.Open("sqlite3", "./database/user.db")
+
 	if err != nil {
-		log.Fatalf("failed to connect to SQLite database: %v", err)
+		log.Printf("Error: %v", err)
 	}
 
 	_, err = db.Exec(`
@@ -26,7 +27,7 @@ func main() {
     )
 `)
 	if err != nil {
-		log.Fatalf("failed to create table: %v", err)
+		log.Printf("failed to create table: %v", err)
 	}
 
 	defer db.Close()

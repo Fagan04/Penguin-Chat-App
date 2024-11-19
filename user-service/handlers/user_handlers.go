@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/models"
 
-	"github.com/fagan04/penguin-chat-app/user-service/auth"
-	"github.com/fagan04/penguin-chat-app/user-service/models"
-	"github.com/fagan04/penguin-chat-app/user-service/repository"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/auth"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/repository"
 	"net/http"
 	"time"
 )
