@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
-	"log"
 	"os"
 )
 
@@ -17,28 +15,22 @@ type Config struct {
 	DBName     string
 }
 
-var Envs = initConfig()
+var Envs = LoadConfig()
 
-func initConfig() Config {
-
-	err := godotenv.Load("../config/.env")
-	if err != nil {
-		log.Println("Error loading .env file")
-	}
-
-	return Config{
+func LoadConfig() *Config {
+	return &Config{
 		PublicHost: getEnv("PUBLIC_HOST", "http://localhost"),
-		Port:       getEnv("PORT", ":8081"),
 		DBUser:     getEnv("DB_USER", "tamerlan"),
 		DBPassword: getEnv("DB_PASSWORD", "Web_Chat123"),
 		DBAddress:  fmt.Sprintf("%s:%s", getEnv("DB_HOST", "127.0.0.1"), getEnv("DB_PORT", "3306")),
 		DBName:     getEnv("DB_NAME", "web_chat"),
+		Port:       getEnv("PORT", "8082"),
 	}
 }
 
-func getEnv(key, fallback string) string {
-	if value, ok := os.LookupEnv(key); ok {
+func getEnv(key, defaultVal string) string {
+	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	return fallback
+	return defaultVal
 }

@@ -2,7 +2,9 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/Fagan04/Penguin-Chat-App/notification-service/models"
+	"github.com/go-sql-driver/mysql"
 )
 
 type NotificationRepository struct {
@@ -11,6 +13,19 @@ type NotificationRepository struct {
 
 func NewRepository(db *sql.DB) *NotificationRepository {
 	return &NotificationRepository{DB: db}
+}
+
+func NewMySQLStorage(cfg mysql.Config) (*sql.DB, error) {
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	return db, nil
 }
 
 func (repo *NotificationRepository) FetchNewMessages(userID string) ([]models.Notification, error) {

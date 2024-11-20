@@ -3,8 +3,19 @@ module github.com/Fagan04/Penguin-Chat-App
 go 1.23.3
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
-	github.com/genryusaishigikuni/webchat v0.0.0-20241119041049-d3ce5a744813 // indirect
-	github.com/gorilla/mux v1.8.1 // indirect
-	github.com/mattn/go-sqlite3 v1.14.24 // indirect
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/genryusaishigikuni/webchat v0.0.0-20241119041049-d3ce5a744813
+	github.com/go-sql-driver/mysql v1.8.1
+	github.com/golang-migrate/migrate/v4 v4.18.1
+	github.com/gorilla/mux v1.8.1
+	github.com/gorilla/websocket v1.5.3
+	github.com/joho/godotenv v1.5.1
+	github.com/mattn/go-sqlite3 v1.14.24
+)
+
+require (
+	filippo.io/edwards25519 v1.1.0 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
 )

@@ -3,12 +3,30 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/Fagan04/Penguin-Chat-App/user-service/models"
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/go-sql-driver/mysql"
 )
 
 type UserRepository struct {
 	DB *sql.DB
+}
+
+func NewRepository(db *sql.DB) *UserRepository {
+	return &UserRepository{DB: db}
+}
+
+func NewMySQLStorage(cfg mysql.Config) (*sql.DB, error) {
+	db, err := sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	return db, nil
 }
 
 func (repo *UserRepository) CreateUser(user models.User) error {
