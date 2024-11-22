@@ -7,7 +7,13 @@ import (
 	"time"
 )
 
-var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
+var jwtKey = []byte(func() string {
+	key := os.Getenv("JWT_SECRET_KEY")
+	if key == "" {
+		return "default_secret_key" // Replace this with a non-empty fallback value
+	}
+	return key
+}())
 
 type Claims struct {
 	Username string `json:"username"`

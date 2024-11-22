@@ -19,9 +19,16 @@ func (handler *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		Username string `json:"username"`
 		Password string `json:"password"`
 	}
+
 	err := json.NewDecoder(r.Body).Decode(&creds)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	user, err := handler.Repo.GetUserByUsername(creds.Username)
+	if err != nil || user.Password != creds.Password {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 

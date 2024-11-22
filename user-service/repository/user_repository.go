@@ -30,13 +30,13 @@ func NewMySQLStorage(cfg mysql.Config) (*sql.DB, error) {
 }
 
 func (repo *UserRepository) CreateUser(user models.User) error {
-	_, err := repo.DB.Exec("INSERT INTO users (id, username, email, password) VALUES (?, ?, ?, ?)", user.ID, user.Username, user.Email, user.Password)
+	_, err := repo.DB.Exec("INSERT INTO users (username, email, password) VALUES (?, ?, ?)", user.Username, user.Email, user.Password)
 	return err
 }
 
 func (repo *UserRepository) GetUserBYID(id int) (models.User, error) {
 	var user models.User
-	row := repo.DB.QueryRow("SELECT * FROM users WHERE id = $1", id)
+	row := repo.DB.QueryRow("SELECT * FROM users WHERE id = ?", id)
 	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password)
 	if err != nil {
 		return models.User{}, errors.New("user not found")
@@ -46,10 +46,20 @@ func (repo *UserRepository) GetUserBYID(id int) (models.User, error) {
 
 func (repo *UserRepository) GetUserByEmail(email string) (models.User, error) {
 	var user models.User
-	row := repo.DB.QueryRow("SELECT * FROM users WHERE email = $1", email)
+	row := repo.DB.QueryRow("SELECT * FROM users WHERE email = ?", email)
 	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password)
 	if err != nil {
 		return models.User{}, errors.New("user for this email address not found")
+	}
+	return user, nil
+}
+
+func (repo *UserRepository) GetUserByUsername(username string) (models.User, error) {
+	var user models.User
+	row := repo.DB.QueryRow("SELECT * FROM users WHERE username = ?", username)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Password)
+	if err != nil {
+		return models.User{}, errors.New("user for this user not found")
 	}
 	return user, nil
 }

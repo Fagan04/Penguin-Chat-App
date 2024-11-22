@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("sqlite3", "./database/user.db")
+	db, err := sql.Open("sqlite3", "../database/user.db")
 
 	if err != nil {
 		log.Printf("Error: %v", err)
@@ -30,7 +30,13 @@ func main() {
 		log.Printf("failed to create table: %v", err)
 	}
 
-	defer db.Close()
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			log.Printf("failed to close db: %v", err)
+			return
+		}
+	}(db)
 
 	userRepo := &repository.UserRepository{DB: db}
 	userHandler := &handlers.UserHandler{Repo: userRepo}

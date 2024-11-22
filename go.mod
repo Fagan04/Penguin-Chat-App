@@ -1,10 +1,11 @@
 module github.com/Fagan04/Penguin-Chat-App
 
-go 1.23.3
+go 1.22.0
+
+toolchain go1.23.3
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/genryusaishigikuni/webchat v0.0.0-20241119041049-d3ce5a744813
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-migrate/migrate/v4 v4.18.1
 	github.com/gorilla/mux v1.8.1

@@ -11,7 +11,7 @@ func ParseJson(r *http.Request, payload any) error {
 	if r.Body == nil {
 		return fmt.Errorf("missing request body")
 	}
-
+	log.Println("Parsing JSON payload...")
 	return json.NewDecoder(r.Body).Decode(payload)
 }
 

@@ -5,12 +5,13 @@ import (
 	"github.com/Fagan04/Penguin-Chat-App/notification-service/handlers"
 	"github.com/Fagan04/Penguin-Chat-App/notification-service/repository"
 	"github.com/gorilla/mux"
+	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"net/http"
 )
 
 func main() {
-	db, err := sql.Open("sqlite3", "./notifications.db")
+	db, err := sql.Open("sqlite3", "../database/notifications.db")
 	if err != nil {
 		log.Fatalf("Error connecting to the database: %v", err)
 	}
