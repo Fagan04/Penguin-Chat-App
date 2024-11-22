@@ -32,7 +32,12 @@ func main() {
 
 	// Pass the shared db instance to the repository
 	repo := repository.NewRepository(db)
+	notificationService := handlers.NewNotificationService(repo)
+
 	r := mux.NewRouter()
+
+	r.HandleFunc("/addNotification", notificationService.AddNotification)
+
 	r.HandleFunc("/notifications/{user_id}", handlers.GetNewMessageHandler(repo)).Methods("GET")
 
 	log.Println("Notification Service is running on port 8082")

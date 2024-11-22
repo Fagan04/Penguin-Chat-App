@@ -74,19 +74,6 @@ func (c *Store) GetChatByID(chatID int) (*Chat, error) {
 	return chat, nil
 }
 
-//func scanRowIntoChat(row *sql.Rows) (*Chat, error) {
-//	chat := new(Chat)
-//	err := row.Scan(
-//		&chat.ChatID,
-//		&chat.ChatName,
-//	)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to scan chat row: %w", err
-//	}
-//
-//	return chat, err
-//}
-
 func (c *Store) CreateChat(chat Chat) error {
 	query := "INSERT INTO chats (chat_name) VALUES (?)"
 
@@ -105,9 +92,10 @@ func (c *Store) CreateChat(chat Chat) error {
 	return nil
 }
 
-func (c *Store) AddUserToChat(chatID, userID int) error {
+func (c *Store) AddUserToChat(userID, chatID int) error {
 	joinedAt := time.Now().Format("2006-01-02 15:04:05")
 
+	fmt.Printf("Adding user %d to chat %d at %s\n", userID, chatID, joinedAt)
 	query := "INSERT INTO chat_members (chat_id, user_id, joined_at) VALUES (?, ?, ?)"
 
 	_, err := c.db.Exec(query, chatID, userID, joinedAt)

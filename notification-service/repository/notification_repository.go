@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Fagan04/Penguin-Chat-App/notification-service/models"
 	"github.com/go-sql-driver/mysql"
+	"log"
 )
 
 type NotificationRepository struct {
@@ -50,4 +51,17 @@ func (repo *NotificationRepository) FetchNewMessages(userID string) ([]models.No
 	}
 
 	return notifications, nil
+}
+
+func (repo *NotificationRepository) SaveNotification(notification *models.Notification) error {
+	// Log the notification before saving
+	log.Printf("Saving notification: %v", notification)
+
+	_, err := repo.DB.Exec("INSERT INTO notifications (user_id, message, is_new, timestamp) VALUES (?, ?, ?, ?)",
+		notification.UserID, notification.Message, notification.IsNew, notification.Timestamp)
+	if err != nil {
+		return fmt.Errorf("failed to save notification: %w", err)
+	}
+
+	return nil
 }

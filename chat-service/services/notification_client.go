@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -28,12 +29,16 @@ func (ns *NotificationService) SendNotification(userID int, message string) erro
 	if err != nil {
 		return fmt.Errorf("failed to marshal notification payload: %w", err)
 	}
-
+	log.Printf("Sending notification to user %d: %s", userID, message)
 	resp, err := http.Post(fmt.Sprintf("%s/addNotification", ns.BaseURL), "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		return fmt.Errorf("failed to send notification request: %w", err)
 	}
+	log.Printf("Notification response status: %s", resp.Status)
+
 	defer resp.Body.Close()
+
+	log.Printf("Received response from notification service: %s", resp.Status)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("notification services responded with status: %s", resp.Status)

@@ -6,6 +6,7 @@ import (
 	services "github.com/Fagan04/Penguin-Chat-App/chat-service/services"
 	"github.com/Fagan04/Penguin-Chat-App/utils"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -107,14 +108,18 @@ func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	log.Println("About to send notifications")
+	log.Printf("Message chat ID: %d", message.ChatID)
 	chatMembers, err := c.store.GetChatMembers(message.ChatID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
+	log.Printf("Chat members: %+v", chatMembers) // Log the chat members
 
 	for _, member := range chatMembers {
-		if member.UserID != userID { // Notify everyone except the sender
+		if member.UserID != userID {
+			log.Println("Sending notification for chat message.")
 			err := c.notificationService.SendNotification(member.UserID, fmt.Sprintf("New message in chat %d", message.ChatID))
 			if err != nil {
 				utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to send notification: %w", err))
@@ -127,13 +132,6 @@ func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request)
 }
 
 func (c *ChatHandler) HandlerAddUserToChat(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.Header.Get("User-ID")
-	_, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-
 	var payload struct {
 		ChatID int `json:"chat_id"`
 		UserID int `json:"user_id"`
@@ -145,14 +143,14 @@ func (c *ChatHandler) HandlerAddUserToChat(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Check if the chat exists
-	chat, err := c.store.GetChatByID(payload.ChatID)
+	_, err := c.store.GetChatByID(payload.ChatID)
 	if err != nil {
 		utils.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 
 	// Add the user to the chat
-	err = c.store.AddUserToChat(payload.UserID, chat.ChatID)
+	err = c.store.AddUserToChat(payload.UserID, payload.ChatID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to add user to chat: %w", err))
 		return
