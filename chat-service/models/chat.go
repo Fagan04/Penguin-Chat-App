@@ -33,4 +33,7 @@ type ChatStore interface {
 	CreateChat(Chat) error
 	GetUserChats(userID int) ([]Chat, error)
 	SendMessage(message ChatMessage) error
+	AddUserToChat(chatID, userID int) error
+	GetChatByID(chatID int) (*Chat, error)
+	GetChatMembers(chatID int) ([]ChatMember, error)
 }

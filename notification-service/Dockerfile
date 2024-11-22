@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o notification-service main.go
+RUN go build -o notification-services main.go
 
 EXPOSE 8082
 

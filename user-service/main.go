@@ -49,7 +49,7 @@ func main() {
 	protected := r.PathPrefix("/protected").Subrouter()
 	protected.Use(auth.JWTMiddleware)
 
-	log.Println("User service is running on port 8080")
+	log.Println("User services is running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 
 }

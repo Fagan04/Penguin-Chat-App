@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"github.com/Fagan04/Penguin-Chat-App/chat-service/models"
+	services "github.com/Fagan04/Penguin-Chat-App/chat-service/services"
 	"github.com/Fagan04/Penguin-Chat-App/utils"
 	"github.com/gorilla/mux"
 	"net/http"
@@ -11,17 +12,19 @@ import (
 )
 
 type ChatHandler struct {
-	store models.ChatStore
+	store               models.ChatStore
+	notificationService *services.NotificationService
 }
 
-func NewChatHandler(store models.ChatStore) *ChatHandler {
-	return &ChatHandler{store: store}
+func NewChatHandler(store models.ChatStore, notificationService *services.NotificationService) *ChatHandler {
+	return &ChatHandler{store: store, notificationService: notificationService}
 }
 
 func (c *ChatHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/createChat", c.HandlerChatCreation).Methods("POST")
 	router.HandleFunc("/accessChat", c.HandlerChatAccess).Methods("GET")
 	router.HandleFunc("/sendMessage", c.HandlerSendMessage).Methods("POST")
+	router.HandleFunc("/addUserToChat", c.HandlerAddUserToChat).Methods("POST") // New route for adding users
 }
 
 func (c *ChatHandler) HandlerChatCreation(w http.ResponseWriter, r *http.Request) {
@@ -104,5 +107,57 @@ func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	chatMembers, err := c.store.GetChatMembers(message.ChatID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	for _, member := range chatMembers {
+		if member.UserID != userID { // Notify everyone except the sender
+			err := c.notificationService.SendNotification(member.UserID, fmt.Sprintf("New message in chat %d", message.ChatID))
+			if err != nil {
+				utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to send notification: %w", err))
+				return
+			}
+		}
+	}
+
 	utils.WriteJson(w, http.StatusOK, map[string]string{"message": "message sent successfully"})
+}
+
+func (c *ChatHandler) HandlerAddUserToChat(w http.ResponseWriter, r *http.Request) {
+	userIDStr := r.Header.Get("User-ID")
+	_, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	var payload struct {
+		ChatID int `json:"chat_id"`
+		UserID int `json:"user_id"`
+	}
+
+	if err := utils.ParseJson(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// Check if the chat exists
+	chat, err := c.store.GetChatByID(payload.ChatID)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, err)
+		return
+	}
+
+	// Add the user to the chat
+	err = c.store.AddUserToChat(payload.UserID, chat.ChatID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to add user to chat: %w", err))
+		return
+	}
+
+	// Respond with success
+	utils.WriteJson(w, http.StatusOK, map[string]string{"message": "User added to chat successfully"})
 }

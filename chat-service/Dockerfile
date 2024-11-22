@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o chat-service main.go
+RUN go build -o chat-services main.go
 
 EXPOSE 8081
 
