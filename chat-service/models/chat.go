@@ -1,12 +1,14 @@
 package models
 
 import (
+	"net/http"
 	"time"
 )
 
 type Chat struct {
-	ChatID   int    `json:"chat_id"`
+	ChatID   int    `json:"id"`
 	ChatName string `json:"chat_name"`
+	OwnerID  int    `json:"owner_id"`
 }
 
 type ChatMember struct {
@@ -36,4 +38,7 @@ type ChatStore interface {
 	AddUserToChat(chatID, userID int) error
 	GetChatByID(chatID int) (*Chat, error)
 	GetChatMembers(chatID int) ([]ChatMember, error)
+	GetMessagesByChats(userID int) (map[int][]ChatMessage, error)
+	GetUserIDByUsername(username string) (int, error)
+	ExtractUserIDFromToken(r *http.Request) (int, error)
 }

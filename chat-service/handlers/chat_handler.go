@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -25,24 +24,33 @@ func (c *ChatHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/createChat", c.HandlerChatCreation).Methods("POST")
 	router.HandleFunc("/accessChat", c.HandlerChatAccess).Methods("GET")
 	router.HandleFunc("/sendMessage", c.HandlerSendMessage).Methods("POST")
-	router.HandleFunc("/addUserToChat", c.HandlerAddUserToChat).Methods("POST") // New route for adding users
+	router.HandleFunc("/addUserToChat", c.HandlerAddUserToChat).Methods("POST")
+	router.HandleFunc("/getMessagesGroupedByChat", c.GetMessagesGroupedByChat).Methods("GET")
 }
 
 func (c *ChatHandler) HandlerChatCreation(w http.ResponseWriter, r *http.Request) {
-	//get the json payload
+	userID, err := c.store.ExtractUserIDFromToken(r)
+	if err != nil {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized: %w", err))
+		return
+	}
+
 	var payload models.RegisterChatPayload
 	if err := utils.ParseJson(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
+		return
 	}
-	// check if the chat exists
-	_, err := c.store.GetChatByName(payload.ChatName)
+
+	_, err = c.store.GetChatByName(payload.ChatName)
 	if err == nil {
 		utils.WriteError(w, http.StatusConflict, fmt.Errorf("chat with name %s already exists", payload.ChatName))
 		return
 	}
 
-	// if not
-	newChat := models.Chat{ChatName: payload.ChatName}
+	newChat := models.Chat{
+		ChatName: payload.ChatName,
+		OwnerID:  userID,
+	}
 	if err := c.store.CreateChat(newChat); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to create chat: %w", err))
 		return
@@ -52,28 +60,23 @@ func (c *ChatHandler) HandlerChatCreation(w http.ResponseWriter, r *http.Request
 }
 
 func (c *ChatHandler) HandlerChatAccess(w http.ResponseWriter, r *http.Request) {
-	// Retrieve User ID from headers (set by the middleware)
-	userIDStr := r.Header.Get("User-ID")
-	userID, err := strconv.Atoi(userIDStr)
+	userID, err := c.store.ExtractUserIDFromToken(r)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized: %w", err))
 		return
 	}
 
-	// Fetch chats where the user is a member
 	chats, err := c.store.GetUserChats(userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Check if the user has any chats
 	if len(chats) == 0 {
 		utils.WriteJson(w, http.StatusOK, map[string]string{"message": "no chats found for the user"})
 		return
 	}
 
-	// Respond with chat data
 	err = utils.WriteJson(w, http.StatusOK, chats)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
@@ -81,10 +84,9 @@ func (c *ChatHandler) HandlerChatAccess(w http.ResponseWriter, r *http.Request) 
 }
 
 func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request) {
-	userIDStr := r.Header.Get("User-ID")
-	userID, err := strconv.Atoi(userIDStr)
+	userID, err := c.store.ExtractUserIDFromToken(r)
 	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err)
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized: %w", err))
 		return
 	}
 
@@ -102,6 +104,7 @@ func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request)
 
 	message.UserID = userID
 	message.SentAt = time.Now()
+
 	err = c.store.SendMessage(message)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
@@ -115,8 +118,9 @@ func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request)
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	log.Printf("Chat members: %+v", chatMembers) // Log the chat members
+	log.Printf("Chat members: %+v", chatMembers)
 
+	// Notify each member of the new message (excluding the sender)
 	for _, member := range chatMembers {
 		if member.UserID != userID {
 			log.Println("Sending notification for chat message.")
@@ -128,13 +132,14 @@ func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	// Respond with success
 	utils.WriteJson(w, http.StatusOK, map[string]string{"message": "message sent successfully"})
 }
 
 func (c *ChatHandler) HandlerAddUserToChat(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
-		ChatID int `json:"chat_id"`
-		UserID int `json:"user_id"`
+		ChatID   int    `json:"chat_id"`
+		Username string `json:"username"` // Accept username instead of user ID
 	}
 
 	if err := utils.ParseJson(r, &payload); err != nil {
@@ -142,20 +147,50 @@ func (c *ChatHandler) HandlerAddUserToChat(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Check if the chat exists
-	_, err := c.store.GetChatByID(payload.ChatID)
+	chat, err := c.store.GetChatByID(payload.ChatID)
 	if err != nil {
 		utils.WriteError(w, http.StatusNotFound, err)
 		return
 	}
 
-	// Add the user to the chat
-	err = c.store.AddUserToChat(payload.UserID, payload.ChatID)
+	userID, err := c.store.ExtractUserIDFromToken(r)
+	if err != nil {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("unauthorized: %w", err))
+		return
+	}
+
+	if chat.OwnerID != userID {
+		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("you are not the owner of the chat"))
+		return
+	}
+
+	targetUserID, err := c.store.GetUserIDByUsername(payload.Username)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, fmt.Errorf("user not found: %w", err))
+		return
+	}
+
+	err = c.store.AddUserToChat(targetUserID, payload.ChatID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to add user to chat: %w", err))
 		return
 	}
 
-	// Respond with success
 	utils.WriteJson(w, http.StatusOK, map[string]string{"message": "User added to chat successfully"})
+}
+
+func (c *ChatHandler) GetMessagesGroupedByChat(w http.ResponseWriter, r *http.Request) {
+	userID, err := c.store.ExtractUserIDFromToken(r)
+	if err != nil {
+		utils.WriteError(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	groupedMessages, err := c.store.GetMessagesByChats(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteJson(w, http.StatusOK, groupedMessages)
 }

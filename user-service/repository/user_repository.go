@@ -63,3 +63,13 @@ func (repo *UserRepository) GetUserByUsername(username string) (models.User, err
 	}
 	return user, nil
 }
+
+func (repo *UserRepository) UserExists(username, email string) (bool, error) {
+	query := "SELECT COUNT(*) FROM users WHERE username = ? OR email = ?"
+	var count int
+	err := repo.DB.QueryRow(query, username, email).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check user existence: %w", err)
+	}
+	return count > 0, nil
+}

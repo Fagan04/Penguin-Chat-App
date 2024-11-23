@@ -3,11 +3,31 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/auth"
+	"github.com/pkg/errors"
+	"net/http"
+	"strconv"
 	"time"
 )
 
 type Store struct {
 	db *sql.DB
+}
+
+func (s *Store) ExtractUserIDFromToken(r *http.Request) (int, error) {
+	cookie, err := r.Cookie("token")
+	if err != nil {
+		return 0, errors.New("token not found")
+	}
+	claims, err := auth.ValidateJWT(cookie.Value)
+	if err != nil {
+		return 0, err
+	}
+	userID, err := strconv.Atoi(claims.Id) // Convert back to int
+	if err != nil {
+		return 0, errors.New("invalid user_id in token")
+	}
+	return userID, nil
 }
 
 func NewStore(db *sql.DB) *Store {
@@ -16,19 +36,16 @@ func NewStore(db *sql.DB) *Store {
 }
 
 func (c *Store) GetChatByName(chatName string) (*Chat, error) {
-	// Query the database for the chat by name
 	rows, err := c.db.Query("SELECT chat_id, chat_name FROM chats WHERE chat_name = ?", chatName)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close() // Ensure rows are closed after we are done with them
+	defer rows.Close()
 
-	// Check if any rows are returned
 	if !rows.Next() {
 		return nil, fmt.Errorf("chat not found")
 	}
 
-	// Scan the result into a Chat struct
 	ch := new(Chat)
 	err = rows.Scan(&ch.ChatID, &ch.ChatName)
 	if err != nil {
@@ -39,7 +56,6 @@ func (c *Store) GetChatByName(chatName string) (*Chat, error) {
 }
 
 func (c *Store) GetChatByID(chatID int) (*Chat, error) {
-	// Log that we're trying to get a chat by ID
 	fmt.Printf("Attempting to get chat by ID: %d\n", chatID)
 
 	rows, err := c.db.Query("SELECT chat_id, chat_name FROM chats WHERE chat_id = ?", chatID)
@@ -55,7 +71,6 @@ func (c *Store) GetChatByID(chatID int) (*Chat, error) {
 		return nil, fmt.Errorf("chat not found")
 	}
 
-	// Scan the result and log the values
 	chat := new(Chat)
 	err = rows.Scan(&chat.ChatID, &chat.ChatName)
 	if err != nil {
@@ -63,11 +78,9 @@ func (c *Store) GetChatByID(chatID int) (*Chat, error) {
 		return nil, fmt.Errorf("failed to scan chat row: %w", err)
 	}
 
-	// Log the values to verify
 	fmt.Printf("Found chat: ID=%d, Name=%s\n", chat.ChatID, chat.ChatName)
 
 	if chat.ChatName == "" {
-		// Log if the chat_name is empty
 		return nil, fmt.Errorf("chat name is empty")
 	}
 
@@ -161,4 +174,52 @@ func (s *Store) GetChatMembers(chatID int) ([]ChatMember, error) {
 	}
 
 	return members, nil
+}
+
+func (s *Store) GetMessagesByChats(userID int) (map[int][]ChatMessage, error) {
+	// SQL query to fetch messages for the user, grouped by chat_id
+	query := `
+		SELECT m.chat_id, m.message_id, m.user_id, m.message_text, m.sent_at
+		FROM chat_messages m
+		JOIN chat_members cm ON m.chat_id = cm.chat_id
+		WHERE cm.user_id = ?  -- Only messages for this user
+		ORDER BY m.chat_id, m.sent_at;
+	`
+
+	// Execute the query, passing the userID as a parameter
+	rows, err := s.db.Query(query, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query messages: %w", err)
+	}
+	defer rows.Close()
+
+	groupedMessages := make(map[int][]ChatMessage)
+
+	for rows.Next() {
+		var msg ChatMessage
+		var chatID int
+
+		err := rows.Scan(&chatID, &msg.MessageID, &msg.UserID, &msg.MessageText, &msg.SentAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		groupedMessages[chatID] = append(groupedMessages[chatID], msg)
+	}
+
+	// Return the map containing the messages grouped by chat ID
+	return groupedMessages, nil
+}
+
+func (s *Store) GetUserIDByUsername(username string) (int, error) {
+	var userID int
+	query := `SELECT user_id FROM users WHERE username = ?`
+	err := s.db.QueryRow(query, username).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, fmt.Errorf("user not found")
+		}
+		return 0, err
+	}
+	return userID, nil
 }
