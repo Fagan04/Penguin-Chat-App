@@ -63,7 +63,7 @@ const Login = () => {
           </Pressable>
           <Text style={styles.info}>
             New to LosPenguinos?{" "}
-            <Link replace href="/" style={styles.infoLink}>
+            <Link replace href="/chats" style={styles.infoLink}>
               Sign in here
             </Link>
           </Text>

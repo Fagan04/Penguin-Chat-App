@@ -1,9 +1,10 @@
+import GlobalProvider from "@/context/GlobalProvider";
 import { Stack } from "expo-router";
 import FlashMessage from "react-native-flash-message";
 
 const Layout = () => {
   return (
-    <>
+    <GlobalProvider>
       <Stack
         screenOptions={{
           headerStyle: {
@@ -17,9 +18,12 @@ const Layout = () => {
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen name="chats/index" options={{ headerShown: false }} />
+        <Stack.Screen name="chats/new" options={{ headerShown: false }} />
+        <Stack.Screen name="chats/[chatId]" options={{ headerShown: false }} />
       </Stack>
       <FlashMessage position="top" />
-    </>
+    </GlobalProvider>
   );
 };
 
