@@ -8,7 +8,6 @@ import (
 	"github.com/Fagan04/Penguin-Chat-App/user-service/auth"
 	"github.com/Fagan04/Penguin-Chat-App/user-service/repository"
 	"net/http"
-	"time"
 )
 
 type UserHandler struct {
@@ -33,24 +32,21 @@ func (handler *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Generate token with user_id
 	token, err := auth.GenerateJWT(user.Username, user.ID)
 	if err != nil {
 		http.Error(w, "Failed to create token", http.StatusInternalServerError)
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{
-		Name:     "token",
-		Value:    token,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-	})
-
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write([]byte("Login successful"))
+	err = json.NewEncoder(w).Encode(map[string]string{
+		"token":   token,
+		"message": "Login successful",
+	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -80,7 +76,6 @@ func (handler *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request)
 
 	user.Password = string(hashedPassword)
 
-	// Create the user
 	err = handler.Repo.CreateUser(user)
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)

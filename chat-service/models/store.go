@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -15,14 +16,23 @@ type Store struct {
 }
 
 func (s *Store) ExtractUserIDFromToken(r *http.Request) (int, error) {
-	cookie, err := r.Cookie("token")
-	if err != nil {
-		return 0, errors.New("token not found")
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return 0, errors.New("authorization header not found")
 	}
-	claims, err := auth.ValidateJWT(cookie.Value)
+
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return 0, errors.New("invalid authorization header")
+	}
+
+	token := parts[1]
+
+	claims, err := auth.ValidateJWT(token)
 	if err != nil {
 		return 0, err
 	}
+
 	userID, err := strconv.Atoi(claims.Id) // Convert back to int
 	if err != nil {
 		return 0, errors.New("invalid user_id in token")
