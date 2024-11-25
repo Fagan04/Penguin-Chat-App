@@ -2,11 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/Fagan04/Penguin-Chat-App/user-service/models"
-	"golang.org/x/crypto/bcrypt"
-
 	"github.com/Fagan04/Penguin-Chat-App/user-service/auth"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/models"
 	"github.com/Fagan04/Penguin-Chat-App/user-service/repository"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
@@ -27,7 +26,13 @@ func (handler *UserHandler) LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := handler.Repo.GetUserByUsername(creds.Username)
-	if err != nil || user.Password != creds.Password {
+	if err != nil {
+		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+		return
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(creds.Password))
+	if err != nil {
 		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
