@@ -51,6 +51,7 @@ func (c *ChatHandler) HandlerChatCreation(w http.ResponseWriter, r *http.Request
 		ChatName: payload.ChatName,
 		OwnerID:  userID,
 	}
+
 	if err := c.store.CreateChat(newChat); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to create chat: %w", err))
 		return

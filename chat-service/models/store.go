@@ -98,9 +98,9 @@ func (c *Store) GetChatByID(chatID int) (*Chat, error) {
 }
 
 func (c *Store) CreateChat(chat Chat) error {
-	query := "INSERT INTO chats (chat_name) VALUES (?)"
+	query := "INSERT INTO chats (chat_name, owner_id) VALUES (?, ?)"
 
-	result, err := c.db.Exec(query, chat.ChatName)
+	result, err := c.db.Exec(query, chat.ChatName, chat.OwnerID)
 	if err != nil {
 		return fmt.Errorf("failed to create chat: %w", err)
 	}
@@ -111,6 +111,13 @@ func (c *Store) CreateChat(chat Chat) error {
 	}
 
 	chat.ChatID = int(chatID)
+
+	joinedAt := time.Now().Format("2006-01-02 15:04:05")
+	memberQuery := "INSERT INTO chat_members (chat_id, user_id, joined_at) VALUES (?, ?, ?)"
+	_, err = c.db.Exec(memberQuery, chat.ChatID, chat.OwnerID, joinedAt)
+	if err != nil {
+		return fmt.Errorf("failed to add chat owner as a member: %w", err)
+	}
 
 	return nil
 }

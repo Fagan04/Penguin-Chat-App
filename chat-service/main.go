@@ -25,6 +25,7 @@ func main() {
 		CREATE TABLE IF NOT EXISTS chats (
 			chat_id INTEGER PRIMARY KEY AUTOINCREMENT,
 			chat_name TEXT NOT NULL
+		    owner_id INTEGER NOT NULL
 		);
 		CREATE TABLE IF NOT EXISTS chat_members (
 		    chat_member_id INTEGER PRIMARY KEY AUTOINCREMENT,
