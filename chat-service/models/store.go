@@ -135,14 +135,14 @@ func (c *Store) AddUserToChat(userID, chatID int) error {
 	return nil
 }
 
-func (c *Store) GetUserChats(userID int) ([]Chat, error) {
+func (s *Store) GetUserChats(userID int) ([]Chat, error) {
 	query := `
 		SELECT c.chat_id, c.chat_name, c.owner_id
 		FROM chats c
 		JOIN chat_members cm ON c.chat_id = cm.chat_id
 		WHERE cm.user_id = ?`
 
-	rows, err := c.db.Query(query, userID)
+	rows, err := s.db.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
