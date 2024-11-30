@@ -137,7 +137,7 @@ func (c *Store) AddUserToChat(userID, chatID int) error {
 
 func (c *Store) GetUserChats(userID int) ([]Chat, error) {
 	query := `
-		SELECT c.chat_id, c.chat_name
+		SELECT c.chat_id, c.chat_name, c.owner_id
 		FROM chats c
 		JOIN chat_members cm ON c.chat_id = cm.chat_id
 		WHERE cm.user_id = ?`
@@ -151,7 +151,7 @@ func (c *Store) GetUserChats(userID int) ([]Chat, error) {
 	chats := []Chat{}
 	for rows.Next() {
 		chat := Chat{}
-		if err := rows.Scan(&chat.ChatID, &chat.ChatName); err != nil {
+		if err := rows.Scan(&chat.ChatID, &chat.ChatName, &chat.OwnerID); err != nil {
 			return nil, err
 		}
 		chats = append(chats, chat)
