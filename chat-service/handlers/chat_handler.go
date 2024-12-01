@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -26,6 +27,8 @@ func (c *ChatHandler) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/sendMessage", c.HandlerSendMessage).Methods("POST")
 	router.HandleFunc("/addUserToChat", c.HandlerAddUserToChat).Methods("POST")
 	router.HandleFunc("/getMessagesGroupedByChat", c.GetMessagesGroupedByChat).Methods("GET")
+	router.HandleFunc("/getAllUsers", c.GetAllUsers).Methods("GET")
+	router.HandleFunc("/getChatMembers", c.GetChatParticipants).Methods("GET")
 }
 
 func (c *ChatHandler) HandlerChatCreation(w http.ResponseWriter, r *http.Request) {
@@ -121,7 +124,6 @@ func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request)
 	}
 	log.Printf("Chat members: %+v", chatMembers)
 
-	// Notify each member of the new message (excluding the sender)
 	for _, member := range chatMembers {
 		if member.UserID != userID {
 			log.Println("Sending notification for chat message.")
@@ -194,4 +196,34 @@ func (c *ChatHandler) GetMessagesGroupedByChat(w http.ResponseWriter, r *http.Re
 	}
 
 	utils.WriteJson(w, http.StatusOK, groupedMessages)
+}
+
+func (c *ChatHandler) GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	allUsers, err := c.store.GetAllUsers()
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	utils.WriteJson(w, http.StatusOK, allUsers)
+}
+
+func (c *ChatHandler) GetChatParticipants(w http.ResponseWriter, r *http.Request) {
+	chatIDStr := r.Header.Get("chat_id")
+	if chatIDStr == "" {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("missing chat ID"))
+		return
+	}
+
+	chatID, err := strconv.Atoi(chatIDStr)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	participants, err := c.store.GetChatMembers(chatID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	utils.WriteJson(w, http.StatusOK, participants)
 }

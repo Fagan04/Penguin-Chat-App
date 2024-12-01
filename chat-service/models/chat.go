@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/Fagan04/Penguin-Chat-App/user-service/models"
 	"net/http"
 	"time"
 )
@@ -41,4 +42,5 @@ type ChatStore interface {
 	GetMessagesByChats(userID int) (map[int][]ChatMessage, error)
 	GetUserIDByUsername(username string) (int, error)
 	ExtractUserIDFromToken(r *http.Request) (int, error)
+	GetAllUsers() ([]models.User, error)
 }

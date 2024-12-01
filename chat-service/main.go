@@ -36,7 +36,7 @@ func main() {
     		FOREIGN KEY (user_id) REFERENCES users(user_id)	
 		);
 		CREATE TABLE IF NOT EXISTS chat_messages (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			message_id INTEGER PRIMARY KEY AUTOINCREMENT,
 			chat_id INTEGER,
 			user_id INTEGER,
 			message_text TEXT,

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Fagan04/Penguin-Chat-App/user-service/auth"
+	"github.com/Fagan04/Penguin-Chat-App/user-service/models"
 	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
@@ -194,7 +195,6 @@ func (s *Store) GetChatMembers(chatID int) ([]ChatMember, error) {
 }
 
 func (s *Store) GetMessagesByChats(userID int) (map[int][]ChatMessage, error) {
-	// SQL query to fetch messages for the user, grouped by chat_id
 	query := `
 		SELECT m.chat_id, m.message_id, m.user_id, m.message_text, m.sent_at
 		FROM chat_messages m
@@ -203,7 +203,6 @@ func (s *Store) GetMessagesByChats(userID int) (map[int][]ChatMessage, error) {
 		ORDER BY m.chat_id, m.sent_at;
 	`
 
-	// Execute the query, passing the userID as a parameter
 	rows, err := s.db.Query(query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query messages: %w", err)
@@ -224,7 +223,6 @@ func (s *Store) GetMessagesByChats(userID int) (map[int][]ChatMessage, error) {
 		groupedMessages[chatID] = append(groupedMessages[chatID], msg)
 	}
 
-	// Return the map containing the messages grouped by chat ID
 	return groupedMessages, nil
 }
 
@@ -239,4 +237,24 @@ func (s *Store) GetUserIDByUsername(username string) (int, error) {
 		return 0, err
 	}
 	return userID, nil
+}
+
+func (s *Store) GetAllUsers() ([]models.User, error) {
+	query := `SELECT * FROM users`
+	allUsers, err := s.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch all users: %w", err)
+	}
+	defer allUsers.Close()
+
+	var users []models.User
+	for allUsers.Next() {
+		var user models.User
+		if err := allUsers.Scan(&user.ID, &user.Username); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
 }
