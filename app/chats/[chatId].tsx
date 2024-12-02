@@ -12,12 +12,36 @@ import {
   Keyboard,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
+import { useGlobalContext } from "@/context/GlobalProvider";
+import { Chat } from "@/types/Chat";
+import axios from "axios";
+import { chatServiceHost } from "@/constants/backendUrl";
 
 const ChatScreen = () => {
   const [message, setMessage] = useState("");
   const flatListRef = useRef<FlatList>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  const { chatId } = useLocalSearchParams();
+
+  const context = useGlobalContext();
+  if (context == undefined) throw new Error("Context not defined");
+
+  const { chats, token, currentChat, setCurrentChat } = context;
+
+  useEffect(() => {
+    if (!token) {
+      router.replace("/");
+      return;
+    }
+    const chat = chats.find(c => c.id.toString() === chatId);
+    if (!chat) {
+      router.replace("/");
+      return;
+    }
+    setCurrentChat(chat);
+  }, []);
 
   const messages = [
     {
@@ -53,14 +77,22 @@ const ChatScreen = () => {
     </View>
   );
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (message.trim()) {
-      // Add send message logic
-      setMessage("");
+      try {
+        await axios.post(
+          `${chatServiceHost}/sendMessage`,
+          { chatId, message },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setMessage("");
+      }
     }
   };
 
-  // Listen to keyboard events
   useEffect(() => {
     const keyboardDidShow = () => setKeyboardVisible(true);
     const keyboardDidHide = () => setKeyboardVisible(false);
@@ -80,7 +112,6 @@ const ChatScreen = () => {
     };
   }, []);
 
-  // Scroll to the bottom when the keyboard opens or messages are sent
   useEffect(() => {
     if (keyboardVisible || messages.length) {
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -108,12 +139,11 @@ const ChatScreen = () => {
             <Feather name="arrow-left" size={24} color="black" />
           </TouchableOpacity>
           <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle}>Kamala Harris</Text>
-            <Text style={styles.headerStatus}>online now</Text>
+            <Text style={styles.headerTitle}>{currentChat?.chat_name}</Text>
           </View>
-          <TouchableOpacity>
-            <Ionicons name="call-outline" size={24} color="black" />
-          </TouchableOpacity>
+          <Link href={`/chats/participants/${chatId}/`}>
+            <Ionicons name="people" size={24} color="black" />
+          </Link>
         </View>
 
         {/* Chat Messages */}
@@ -166,7 +196,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 36,
+    paddingTop: 40,
     paddingBottom: 10,
     paddingInline: 18,
     backgroundColor: "white",

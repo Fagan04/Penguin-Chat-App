@@ -18,6 +18,10 @@ const Layout = () => {
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="chats/participants/[chatId]"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="chats/index" options={{ headerShown: false }} />
         <Stack.Screen name="chats/new" options={{ headerShown: false }} />
         <Stack.Screen name="chats/[chatId]" options={{ headerShown: false }} />

@@ -1,5 +1,9 @@
-import { Link } from "expo-router";
-import { useState } from "react";
+import { userServiceHost } from "@/constants/backendUrl";
+import { useGlobalContext } from "@/context/GlobalProvider";
+import showSuccessMessage from "@/utils/showSuccessMessage";
+import axios from "axios";
+import { Link, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,17 +11,45 @@ import {
   StyleSheet,
   ImageBackground,
   Pressable,
-  Alert,
 } from "react-native";
-import { showMessage } from "react-native-flash-message";
 
 const image = {
   uri: "https://s3-alpha-sig.figma.com/img/745d/f541/dcc60ddf9129d621d45f365b41b0dfb8?Expires=1732492800&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=jM~PSzgNAyAYmhqQSeg9llZnFtdTH4etWpTETGbvnH6QsRXrNc9DRZ3aAxmlff4iLFDwYUC16P57NKqXs1kPuxLqISZw6SESqVi6HtXWt6esOGPDRWpWanNRNnLQo29b5oirGHFJzWHbrNKtGGoRmNLui0reXesCsuafCwTnbxv4yxKHxf3nEJNfgDagW7sRMaJptcs9rMLrr-JedcJDhcCLagcLgj4-0MTmTsONzbHnbqsIK78qfDTDBxS33xRaOaFNgePdYFzouV697B0UGIcgpLamgofZb3q0hmZlZwMwa-IlU-OMXrXWdE3hacJ3u0V55O8qyLazdLRYFkI6ow__",
 };
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  const context = useGlobalContext();
+  const router = useRouter();
+
+  if (context == undefined) throw new Error("Context not defined");
+
+  const { setToken, token } = context;
+
+  useEffect(() => {
+    if (token) router.replace("/chats");
+  }, [token]);
+
+  const handleSubmit = async () => {
+    try {
+      const { data }: { data: { message: string; token: string } } =
+        await axios.post(`${userServiceHost}/login`, {
+          username,
+          password,
+        });
+      showSuccessMessage(data.message);
+      setToken(data.token);
+      router.replace("/chats");
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        showSuccessMessage(error.response?.data.trim(), false);
+      } else {
+        console.log("Unexpected error:", error);
+      }
+    }
+  };
 
   return (
     <ImageBackground
@@ -30,10 +62,10 @@ const Login = () => {
           <Text style={styles.title}>Log In</Text>
           <TextInput
             placeholderTextColor={"#e5e5e5"}
-            placeholder="Email"
+            placeholder="Username"
             style={styles.input}
-            value={email}
-            onChangeText={e => setEmail(e)}
+            value={username}
+            onChangeText={e => setUsername(e)}
           />
           <TextInput
             secureTextEntry
@@ -44,14 +76,7 @@ const Login = () => {
             onChangeText={e => setPassword(e)}
           />
           <Pressable
-            onPress={() =>
-              showMessage({
-                message: "Success",
-                type: "success",
-                color: "#fff",
-                backgroundColor: "#007AFF",
-              })
-            }
+            onPress={handleSubmit}
             style={({ pressed }) => [
               {
                 backgroundColor: pressed ? "#007aff50" : "#007aff",
@@ -63,8 +88,8 @@ const Login = () => {
           </Pressable>
           <Text style={styles.info}>
             New to LosPenguinos?{" "}
-            <Link replace href="/chats" style={styles.infoLink}>
-              Sign in here
+            <Link replace href="/" style={styles.infoLink}>
+              Sign up here
             </Link>
           </Text>
         </View>

@@ -5,33 +5,51 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
-import { showMessage } from "react-native-flash-message";
-import { goBack } from "expo-router/build/global-state/routing";
 import { router } from "expo-router";
+import showSuccessMessage from "@/utils/showSuccessMessage";
+import axios from "axios";
+import { useGlobalContext } from "@/context/GlobalProvider";
+import { chatServiceHost } from "@/constants/backendUrl";
 
 const NewChatScreen = () => {
   const [chatName, setChatName] = useState("");
 
-  const handleCreateChat = () => {
+  const context = useGlobalContext();
+
+  if (!context) throw new Error("Context not defined");
+
+  const { token } = context;
+
+  const handleCreateChat = async () => {
     if (!chatName.trim()) {
-      showMessage({
-        message: "Chat name cannot be empty",
-        color: "red",
-        backgroundColor: "#007AFF",
-      });
+      showSuccessMessage("Chat name cannot be empty", false);
       return;
     }
 
-    showMessage({
-      message: "Chat Created",
-      description: `Chat "${chatName}" has been created.`,
-      color: "#fff",
-      backgroundColor: "#007AFF",
-    });
-    setChatName("");
+    try {
+      const { data } = await axios.post(
+        `${chatServiceHost}/createChat`,
+        {
+          chat_name: chatName,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log(data);
+      showSuccessMessage(`New chat named: ${chatName} created.`);
+      setChatName("");
+      router.replace("/chats");
+    } catch (error) {
+      console.log(error);
+      if (axios.isAxiosError(error)) {
+        showSuccessMessage(error.response?.data.trim(), false);
+      }
+    }
   };
   return (
     <View style={styles.container}>

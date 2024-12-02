@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,94 +7,100 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons"; // Or 'react-native-vector-icons/Feather'
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { Link, router, useNavigation } from "expo-router";
-// import Cookies from "@react-native-cookies/cookies";
+import { Link, router } from "expo-router";
 import { useGlobalContext } from "@/context/GlobalProvider";
-
-interface Chat {
-  id: string;
-  name: string;
-  message: string;
-  avatar: string;
-  unread: boolean;
-}
-
-const mockChats: Chat[] = [
-  {
-    id: "1",
-    name: "Adin Ross",
-    message: "typing..",
-    avatar: "https://via.placeholder.com/50",
-    unread: true,
-  },
-  {
-    id: "2",
-    name: "Kamala Harris",
-    message: "Ain't no party like Diddy Party..",
-    avatar: "https://via.placeholder.com/50",
-    unread: false,
-  },
-  {
-    id: "3",
-    name: "Donald Duck",
-    message: "1 new message",
-    avatar: "https://via.placeholder.com/50",
-    unread: true,
-  },
-];
+import showSuccessMessage from "@/utils/showSuccessMessage";
+import axios from "axios";
+import { chatServiceHost } from "@/constants/backendUrl";
+import { Chat } from "@/types/Chat";
 
 const ChatListScreen = () => {
-  const [filteredChats, setFilteredChats] = useState<Chat[]>(mockChats);
-  const [chats, setChats] = useState<Chat[]>(mockChats);
+  const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
 
   const context = useGlobalContext();
-  if (context == undefined) {
-    throw new Error("Context not defined");
-  }
+  if (context == undefined) throw new Error("Context not defined");
 
-  const { user, isLoggedIn, setUser, setIsLoggedIn } = context;
+  const { token, setToken, chats, setChats } = context;
+
+  useEffect(() => {
+    if (!token) router.replace("/");
+  }, [token]);
+
+  useEffect(() => {
+    try {
+      const getData = async () => {
+        const { data }: { data: Chat[] | { message: string } } =
+          await axios.get(`${chatServiceHost}/accessChat`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        if (Array.isArray(data)) {
+          setChats(data);
+          setFilteredChats(data);
+        }
+      };
+      getData();
+    } catch (error) {
+      console.log(error);
+    }
+  }, []);
+
+  useEffect(() => {
+    const getData = async () => {
+      try {
+        const { data } = await axios.get(
+          `${chatServiceHost}/getMessagesGroupedByChat`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        console.log(data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    getData();
+  }, []);
 
   function handleChangeSearch(value: string) {
     let copyChats = [...chats];
     copyChats = copyChats.filter(c =>
-      c.name.toLowerCase().includes(value.toLowerCase())
+      c.chat_name.toLowerCase().includes(value.toLowerCase())
     );
     setFilteredChats(copyChats);
   }
 
   const handleLogout = async () => {
     try {
-      //   await Cookies.clearAll();
-
-      setUser({ id: null, name: null, email: null });
-      setIsLoggedIn(false);
-
-      Alert.alert("Logged Out", "You have been logged out successfully.");
+      setToken("");
+      showSuccessMessage(
+        "You have been logged out successfully.",
+        true,
+        "Logged out"
+      );
+      router.replace("/");
     } catch (error) {
       console.error("Error during logout: ", error);
-      Alert.alert("Error", "Failed to log out. Please try again.");
+      showSuccessMessage("Oops. An error occured");
     }
   };
 
   const renderChatItem = ({ item }: { item: Chat }) => (
     <TouchableOpacity
-      onPress={() => router.push("/chats/5")}
+      onPress={() => router.push(`/chats/${item.id}`)}
       style={styles.chatItem}
     >
-      <Image source={{ uri: item.avatar }} style={styles.avatar} />
+      <Image
+        source={{ uri: "https://via.placeholder.com/50" }}
+        style={styles.avatar}
+      />
       <View style={styles.chatDetails}>
-        <Text style={styles.chatName}>{item.name}</Text>
-        <Text
-          style={item.unread ? styles.chatMessageUnread : styles.chatMessage}
-        >
-          {item.message}
+        <Text style={styles.chatName}>{item.chat_name}</Text>
+        <Text style={true ? styles.chatMessageUnread : styles.chatMessage}>
+          {"salam"}
         </Text>
       </View>
-      {item.unread && <View style={styles.unreadBadge} />}
+      {true && <View style={styles.unreadBadge} />}
     </TouchableOpacity>
   );
 
@@ -127,7 +133,7 @@ const ChatListScreen = () => {
       {/* Chat List */}
       <FlatList
         data={filteredChats}
-        keyExtractor={item => item.id}
+        keyExtractor={item => item.id.toString()}
         renderItem={renderChatItem}
         contentContainerStyle={styles.chatList}
       />
