@@ -13,11 +13,11 @@ import (
 )
 
 type ChatHandler struct {
-	store               models.ChatStore
+	store               *models.Store
 	notificationService *services.NotificationService
 }
 
-func NewChatHandler(store models.ChatStore, notificationService *services.NotificationService) *ChatHandler {
+func NewChatHandler(store *models.Store, notificationService *services.NotificationService) *ChatHandler {
 	return &ChatHandler{store: store, notificationService: notificationService}
 }
 

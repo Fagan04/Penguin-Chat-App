@@ -19,6 +19,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	dbUser, err := sql.Open("sqlite3", "../database/user.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	defer db.Close()
 
 	_, err = db.Exec(`
@@ -42,12 +47,14 @@ func main() {
 			message_text TEXT,
 			sent_at TEXT
 		);
+
 `)
+
 	if err != nil {
 		log.Printf("failed to create table: %v", err)
 	}
 
-	chatStore := models.NewStore(db)
+	chatStore := models.NewStore(db, dbUser)
 	notificationService := services.NewNotificationService("http://localhost:8082") // Adjust URL if necessary
 	chatHandler := handlers.NewChatHandler(chatStore, notificationService)
 

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/Fagan04/Penguin-Chat-App/user-service/auth"
-	"github.com/Fagan04/Penguin-Chat-App/user-service/models"
 	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
@@ -13,7 +12,8 @@ import (
 )
 
 type Store struct {
-	db *sql.DB
+	db     *sql.DB
+	dbUser *sql.DB
 }
 
 func (s *Store) ExtractUserIDFromToken(r *http.Request) (int, error) {
@@ -41,8 +41,8 @@ func (s *Store) ExtractUserIDFromToken(r *http.Request) (int, error) {
 	return userID, nil
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{db: db}
+func NewStore(db *sql.DB, dbUser *sql.DB) *Store {
+	return &Store{db: db, dbUser: dbUser}
 
 }
 
@@ -239,22 +239,22 @@ func (s *Store) GetUserIDByUsername(username string) (int, error) {
 	return userID, nil
 }
 
-func (s *Store) GetAllUsers() ([]models.User, error) {
-	query := `SELECT * FROM users`
-	allUsers, err := s.db.Query(query)
+func (s *Store) GetAllUsers() ([]string, error) {
+	query := `SELECT username FROM users`
+	rows, err := s.dbUser.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch all users: %w", err)
 	}
-	defer allUsers.Close()
+	defer rows.Close()
 
-	var users []models.User
-	for allUsers.Next() {
-		var user models.User
-		if err := allUsers.Scan(&user.ID, &user.Username); err != nil {
+	var usernames []string
+	for rows.Next() {
+		var username string
+		if err := rows.Scan(&username); err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
-		users = append(users, user)
+		usernames = append(usernames, username)
 	}
 
-	return users, nil
+	return usernames, nil
 }
