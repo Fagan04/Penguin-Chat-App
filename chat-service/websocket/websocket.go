@@ -2,12 +2,9 @@ package websocket
 
 import (
 	"encoding/json"
-	"github.com/Fagan04/Penguin-Chat-App/user-service/auth"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
-	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -39,61 +36,39 @@ func NewWebSocketServer() *WebSocketServer {
 	}
 
 }
-
 func (s *WebSocketServer) HandleConnections(w http.ResponseWriter, r *http.Request) {
-
-	tokenString := r.Header.Get("Authorization")
-	if tokenString == "" {
-		http.Error(w, "Not authorized", http.StatusUnauthorized)
-		return
-	}
-
-	claims, err := auth.ValidateJWT(strings.TrimPrefix(tokenString, "Bearer "))
-	if err != nil {
-		http.Error(w, "Invalid Token", http.StatusUnauthorized)
-		return
-	}
-
-	log.Printf("User %s authenticated", claims.Username)
 	log.Printf("Attempting to handle WebSocket connection from: %s", r.RemoteAddr)
+
+	// Upgrade the HTTP connection to a WebSocket connection
 	conn, err := upgrade.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade error: %v", err)
 		http.Error(w, "Could not upgrade connection", http.StatusInternalServerError)
 		return
 	}
-
 	defer conn.Close()
 
-	s.Register <- conn
+	log.Println("WebSocket connection established")
 
-	chatIDStr := r.URL.Query().Get("chatID")
-	chatID, err := strconv.Atoi(chatIDStr)
-	if err != nil {
-		log.Fatalf("Error extracting ChatID from request: ", err)
-		conn.Close()
-		return
-	}
-
+	// Register the connection (e.g., add it to a default chat group)
 	s.mu.Lock()
-	if _, ok := s.ChatClients[chatID]; !ok {
-		s.ChatClients[chatID] = make(map[*websocket.Conn]bool)
+	defaultChatID := 0 // Use a default identifier for anonymous or general connections
+	if _, ok := s.ChatClients[defaultChatID]; !ok {
+		s.ChatClients[defaultChatID] = make(map[*websocket.Conn]bool)
 	}
-	s.ChatClients[chatID][conn] = true
+	s.ChatClients[defaultChatID][conn] = true
 	s.mu.Unlock()
+
+	s.Register <- conn
 
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			log.Printf("Read error: %v", err)
 			s.Unregister <- conn
-			err := conn.Close()
-			if err != nil {
-				log.Printf("Close error: %v", err)
-			}
 			break
 		}
-		// Broadcast the received message
+		// Broadcast the received message to the default chat group
 		s.Broadcast <- msg
 	}
 }
@@ -120,33 +95,29 @@ func (s *WebSocketServer) Start() {
 			s.mu.Unlock()
 
 		case message := <-s.Broadcast:
-
-			log.Println("Broadcasting message: $s", string(message))
 			var msgData struct {
-				ChatID int    `json:"chat_id"`
-				Text   string `json:"text"`
+				Text string `json:"text"`
 			}
 
+			// Attempt to unmarshal as JSON
 			if err := json.Unmarshal(message, &msgData); err != nil {
-				log.Println("Error unmarshaling message: ", err)
-				continue
+				log.Printf("Error unmarshaling message, treating as plain text: %v", err)
+				msgData.Text = string(message) // Treat as plain text
 			}
+
+			log.Printf("Broadcasting message: %s", msgData.Text)
 
 			s.mu.Lock()
-			if chatClients, ok := s.ChatClients[msgData.ChatID]; ok {
-				for client := range chatClients {
-					err := client.WriteMessage(websocket.TextMessage, message)
-					if err != nil {
-						log.Printf("Broadcast error: %v", err)
-						err := client.Close()
-						if err != nil {
-							log.Printf("Close error: %v", err)
-						}
-						delete(chatClients, client)
-					}
+			for client := range s.Clients {
+				err := client.WriteMessage(websocket.TextMessage, []byte(msgData.Text))
+				if err != nil {
+					log.Printf("Broadcast error: %v", err)
+					client.Close()
+					delete(s.Clients, client)
 				}
 			}
 			s.mu.Unlock()
+
 		}
 	}
 }
