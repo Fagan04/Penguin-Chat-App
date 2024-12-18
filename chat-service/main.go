@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"github.com/Fagan04/Penguin-Chat-App/chat-service/handlers"
 	"github.com/Fagan04/Penguin-Chat-App/chat-service/models"
-	"github.com/Fagan04/Penguin-Chat-App/chat-service/services"
 	"github.com/Fagan04/Penguin-Chat-App/chat-service/websocket"
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
@@ -55,8 +54,7 @@ func main() {
 	}
 
 	chatStore := models.NewStore(db, dbUser)
-	notificationService := services.NewNotificationService("http://localhost:8082")
-	chatHandler := handlers.NewChatHandler(chatStore, notificationService)
+	chatHandler := handlers.NewChatHandler(chatStore)
 
 	r := mux.NewRouter()
 	chatHandler.RegisterRoutes(r)

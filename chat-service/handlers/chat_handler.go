@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"github.com/Fagan04/Penguin-Chat-App/chat-service/models"
-	services "github.com/Fagan04/Penguin-Chat-App/chat-service/services"
 	"github.com/Fagan04/Penguin-Chat-App/utils"
 	"github.com/gorilla/mux"
 	"log"
@@ -13,12 +12,11 @@ import (
 )
 
 type ChatHandler struct {
-	store               *models.Store
-	notificationService *services.NotificationService
+	store *models.Store
 }
 
-func NewChatHandler(store *models.Store, notificationService *services.NotificationService) *ChatHandler {
-	return &ChatHandler{store: store, notificationService: notificationService}
+func NewChatHandler(store *models.Store) *ChatHandler {
+	return &ChatHandler{store: store}
 }
 
 func (c *ChatHandler) RegisterRoutes(router *mux.Router) {
@@ -123,17 +121,6 @@ func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	log.Printf("Chat members: %+v", chatMembers)
-
-	for _, member := range chatMembers {
-		if member.UserID != userID {
-			log.Println("Sending notification for chat message.")
-			err := c.notificationService.SendNotification(member.UserID, fmt.Sprintf("New message in chat %d", message.ChatID))
-			if err != nil {
-				utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to send notification: %w", err))
-				return
-			}
-		}
-	}
 
 	// Respond with success
 	utils.WriteJson(w, http.StatusOK, map[string]string{"message": "message sent successfully"})
