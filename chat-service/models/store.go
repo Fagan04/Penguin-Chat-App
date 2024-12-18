@@ -173,7 +173,7 @@ func (c *Store) SendMessage(message ChatMessage) error {
 
 func (s *Store) GetUsernameByUserID(userID int) (string, error) {
 	var username string
-	err := s.dbUser.QueryRow("SELECT username FROM users WHERE user_id = ?", userID).Scan(&username)
+	err := s.dbUser.QueryRow("SELECT username FROM users WHERE id = ?", userID).Scan(&username)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch username: %w", err)
 	}

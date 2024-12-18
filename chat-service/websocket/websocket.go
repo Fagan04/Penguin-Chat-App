@@ -31,11 +31,13 @@ type WebSocketServer struct {
 
 func NewWebSocketServer() *WebSocketServer {
 	return &WebSocketServer{
-		Clients:    make(map[*websocket.Conn]bool),
-		Broadcast:  make(chan []byte),
-		Register:   make(chan *websocket.Conn),
-		Unregister: make(chan *websocket.Conn),
+		Clients:     make(map[*websocket.Conn]bool),
+		ChatClients: make(map[int]map[*websocket.Conn]bool), // Add this
+		Broadcast:   make(chan []byte),
+		Register:    make(chan *websocket.Conn),
+		Unregister:  make(chan *websocket.Conn),
 	}
+
 }
 
 func (s *WebSocketServer) HandleConnections(w http.ResponseWriter, r *http.Request) {
@@ -53,12 +55,15 @@ func (s *WebSocketServer) HandleConnections(w http.ResponseWriter, r *http.Reque
 	}
 
 	log.Printf("User %s authenticated", claims.Username)
-
+	log.Printf("Attempting to handle WebSocket connection from: %s", r.RemoteAddr)
 	conn, err := upgrade.Upgrade(w, r, nil)
 	if err != nil {
-		log.Fatalf("WebSocket upgrade failed: %v", err)
+		log.Printf("WebSocket upgrade error: %v", err)
+		http.Error(w, "Could not upgrade connection", http.StatusInternalServerError)
 		return
 	}
+
+	defer conn.Close()
 
 	s.Register <- conn
 
@@ -116,6 +121,7 @@ func (s *WebSocketServer) Start() {
 
 		case message := <-s.Broadcast:
 
+			log.Println("Broadcasting message: $s", string(message))
 			var msgData struct {
 				ChatID int    `json:"chat_id"`
 				Text   string `json:"text"`
