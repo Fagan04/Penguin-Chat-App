@@ -55,7 +55,7 @@ func main() {
 	}
 
 	chatStore := models.NewStore(db, dbUser)
-	notificationService := services.NewNotificationService("http://localhost:8082") // Adjust URL if necessary
+	notificationService := services.NewNotificationService("http://localhost:8082")
 	chatHandler := handlers.NewChatHandler(chatStore, notificationService)
 
 	r := mux.NewRouter()

@@ -19,6 +19,14 @@ type ChatMember struct {
 	JoinedAt     time.Time `json:"joined_at"`
 }
 
+type ChatMemberWithUsername struct {
+	ChatMemberID int
+	ChatID       int
+	UserID       int
+	JoinedAt     string
+	Username     string
+}
+
 type ChatMessage struct {
 	MessageID   int       `json:"message_id"`
 	ChatID      int       `json:"chat_id"`

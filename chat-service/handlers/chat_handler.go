@@ -220,10 +220,27 @@ func (c *ChatHandler) GetChatParticipants(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	participants, err := c.store.GetChatMembers(chatID)
+	participants, ownerID, err := c.store.GetChatMembersWithUsernames(chatID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
-	utils.WriteJson(w, http.StatusOK, participants)
+
+	ownerUsername, err := c.store.GetUsernameByUserID(ownerID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to fetch chat owner's username: %w", err))
+		return
+	}
+
+	response := struct {
+		OwnerID       int                             `json:"owner_id"`
+		OwnerUsername string                          `json:"owner_username"`
+		Participants  []models.ChatMemberWithUsername `json:"participants"`
+	}{
+		OwnerID:       ownerID,
+		OwnerUsername: ownerUsername,
+		Participants:  participants,
+	}
+
+	utils.WriteJson(w, http.StatusOK, response)
 }

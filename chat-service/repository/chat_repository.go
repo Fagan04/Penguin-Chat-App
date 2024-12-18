@@ -9,10 +9,6 @@ type ChatRepository struct {
 	DB *sql.DB
 }
 
-func NewChatRepository(db *sql.DB) *ChatRepository {
-	return &ChatRepository{DB: db}
-}
-
 func (repo *ChatRepository) CreateMessage(userID, message, timestamp string) error {
 	_, err := repo.DB.Exec(`
 		INSERT INTO messages (user_id, message, timestamp) 

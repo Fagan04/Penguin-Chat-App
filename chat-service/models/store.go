@@ -171,6 +171,24 @@ func (c *Store) SendMessage(message ChatMessage) error {
 	return nil
 }
 
+func (s *Store) GetUsernameByUserID(userID int) (string, error) {
+	var username string
+	err := s.dbUser.QueryRow("SELECT username FROM users WHERE user_id = ?", userID).Scan(&username)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch username: %w", err)
+	}
+	return username, nil
+}
+
+func (s *Store) GetChatOwnerByChatID(chatID int) (int, error) {
+	var ownerID int
+	err := s.db.QueryRow("SELECT owner_id FROM chats WHERE chat_id = ?", chatID).Scan(&ownerID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch chat owner: %w", err)
+	}
+	return ownerID, nil
+}
+
 func (s *Store) GetChatMembers(chatID int) ([]ChatMember, error) {
 	rows, err := s.db.Query("SELECT chat_member_id, chat_id, user_id, joined_at FROM chat_members WHERE chat_id = ?", chatID)
 	if err != nil {
@@ -192,6 +210,40 @@ func (s *Store) GetChatMembers(chatID int) ([]ChatMember, error) {
 	}
 
 	return members, nil
+}
+
+func (s *Store) GetChatMembersWithUsernames(chatID int) ([]ChatMemberWithUsername, int, error) {
+	rows, err := s.db.Query("SELECT chat_member_id, chat_id, user_id, joined_at FROM chat_members WHERE chat_id = ?", chatID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fetch chat members: %w", err)
+	}
+	defer rows.Close()
+
+	var members []ChatMemberWithUsername
+	for rows.Next() {
+		var member ChatMemberWithUsername
+		if err := rows.Scan(&member.ChatMemberID, &member.ChatID, &member.UserID, &member.JoinedAt); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan chat member: %w", err)
+		}
+
+		member.Username, err = s.GetUsernameByUserID(member.UserID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to fetch username for user ID %d: %w", member.UserID, err)
+		}
+
+		members = append(members, member)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	ownerID, err := s.GetChatOwnerByChatID(chatID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fetch chat owner ID: %w", err)
+	}
+
+	return members, ownerID, nil
 }
 
 func (s *Store) GetMessagesByChats(userID int) (map[int][]ChatMessage, error) {
