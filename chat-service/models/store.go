@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Fagan04/Penguin-Chat-App/user-service/auth"
 	"github.com/pkg/errors"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -69,7 +70,7 @@ func (c *Store) GetChatByName(chatName string) (*Chat, error) {
 func (c *Store) GetChatByID(chatID int) (*Chat, error) {
 	fmt.Printf("Attempting to get chat by ID: %d\n", chatID)
 
-	rows, err := c.db.Query("SELECT chat_id, chat_name FROM chats WHERE chat_id = ?", chatID)
+	rows, err := c.db.Query("SELECT chat_id, chat_name, owner_id FROM chats WHERE chat_id = ?", chatID)
 	if err != nil {
 		// Log query error
 		return nil, fmt.Errorf("failed to query chat by ID: %w", err)
@@ -83,7 +84,7 @@ func (c *Store) GetChatByID(chatID int) (*Chat, error) {
 	}
 
 	chat := new(Chat)
-	err = rows.Scan(&chat.ChatID, &chat.ChatName)
+	err = rows.Scan(&chat.ChatID, &chat.ChatName, &chat.OwnerID)
 	if err != nil {
 		// Log scanning error
 		return nil, fmt.Errorf("failed to scan chat row: %w", err)
@@ -280,8 +281,10 @@ func (s *Store) GetMessagesByChats(userID int) (map[int][]ChatMessage, error) {
 
 func (s *Store) GetUserIDByUsername(username string) (int, error) {
 	var userID int
-	query := `SELECT user_id FROM users WHERE username = ?`
-	err := s.db.QueryRow(query, username).Scan(&userID)
+	log.Println(username)
+	log.Println("Database connection:", s.db)
+	query := `SELECT id FROM users WHERE username = ?`
+	err := s.dbUser.QueryRow(query, username).Scan(&userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return 0, fmt.Errorf("user not found")

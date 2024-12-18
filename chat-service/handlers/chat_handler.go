@@ -163,6 +163,8 @@ func (c *ChatHandler) HandlerAddUserToChat(w http.ResponseWriter, r *http.Reques
 	}
 
 	if chat.OwnerID != userID {
+		log.Println(chat.OwnerID)
+		log.Println(userID)
 		utils.WriteError(w, http.StatusForbidden, fmt.Errorf("you are not the owner of the chat"))
 		return
 	}
