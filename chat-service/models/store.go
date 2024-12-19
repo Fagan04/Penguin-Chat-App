@@ -247,14 +247,14 @@ func (s *Store) GetChatMembersWithUsernames(chatID int) ([]ChatMemberWithUsernam
 	return members, ownerID, nil
 }
 
-func (s *Store) GetMessagesByChats(userID int) (map[int][]ChatMessage, error) {
+func (s *Store) GetMessagesByChats(userID int) (map[int][]ChatMessageWithUsername, error) {
 	query := `
-		SELECT m.chat_id, m.message_id, m.user_id, m.message_text, m.sent_at
-		FROM chat_messages m
-		JOIN chat_members cm ON m.chat_id = cm.chat_id
-		WHERE cm.user_id = ?  -- Only messages for this user
-		ORDER BY m.chat_id, m.sent_at;
-	`
+        SELECT m.chat_id, m.message_id, m.user_id, m.message_text, m.sent_at
+        FROM chat_messages m
+        JOIN chat_members cm ON m.chat_id = cm.chat_id
+        WHERE cm.user_id = ?
+        ORDER BY m.chat_id, m.sent_at;
+    `
 
 	rows, err := s.db.Query(query, userID)
 	if err != nil {
@@ -262,16 +262,23 @@ func (s *Store) GetMessagesByChats(userID int) (map[int][]ChatMessage, error) {
 	}
 	defer rows.Close()
 
-	groupedMessages := make(map[int][]ChatMessage)
+	groupedMessages := make(map[int][]ChatMessageWithUsername)
 
 	for rows.Next() {
-		var msg ChatMessage
+		var msg ChatMessageWithUsername
 		var chatID int
 
-		err := rows.Scan(&chatID, &msg.MessageID, &msg.UserID, &msg.MessageText, &msg.SentAt)
+		err := rows.Scan(&msg.ChatID, &msg.MessageID, &msg.UserID, &msg.MessageText, &msg.SentAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
+
+		// Fetch username using GetUsernameByUserID
+		username, err := s.GetUsernameByUserID(msg.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get username for user ID %d: %w", msg.UserID, err)
+		}
+		msg.Username = username
 
 		groupedMessages[chatID] = append(groupedMessages[chatID], msg)
 	}

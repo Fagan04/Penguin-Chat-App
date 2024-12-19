@@ -46,10 +46,24 @@ func main() {
 	r.HandleFunc("/login", userHandler.LoginUser).Methods("POST")
 	r.HandleFunc("/register", userHandler.RegisterUser).Methods("POST")
 
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*") // Replace "*" with your frontend URL for stricter control
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if req.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		r.ServeHTTP(w, req)
+
+	})
+
 	protected := r.PathPrefix("/protected").Subrouter()
 	protected.Use(auth.JWTMiddleware)
 
 	log.Println("User services is running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe("0.0.0.0:8080", handler))
 
 }

@@ -35,6 +35,15 @@ type ChatMessage struct {
 	SentAt      string `json:"sent_at"`
 }
 
+type ChatMessageWithUsername struct {
+	MessageID   int    `json:"message_id"`
+	ChatID      int    `json:"chat_id"`
+	UserID      int    `json:"user_id"`
+	MessageText string `json:"message_text"`
+	SentAt      string `json:"sent_at"`
+	Username    string `json:"username"`
+}
+
 type RegisterChatPayload struct {
 	ChatName string `json:"chat_name"`
 }

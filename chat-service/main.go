@@ -63,7 +63,21 @@ func main() {
 	go wsServer.Start()
 	r.HandleFunc("/ws", wsServer.HandleConnections)
 
+	handler := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*") // Replace "*" with your frontend URL for stricter control
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, chat_id")
+
+		if req.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		r.ServeHTTP(w, req)
+
+	})
+
 	log.Println("Chat services is running on port 8081")
-	log.Fatal(http.ListenAndServe(":8081", r))
+	log.Fatal(http.ListenAndServe("0.0.0.0:8081", handler))
 
 }
