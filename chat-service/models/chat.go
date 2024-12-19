@@ -28,11 +28,11 @@ type ChatMemberWithUsername struct {
 }
 
 type ChatMessage struct {
-	MessageID   int       `json:"message_id"`
-	ChatID      int       `json:"chat_id"`
-	UserID      int       `json:"user_id"`
-	MessageText string    `json:"message_text"`
-	SentAt      time.Time `json:"sent_at"`
+	MessageID   int    `json:"message_id"`
+	ChatID      int    `json:"chat_id"`
+	UserID      int    `json:"user_id"`
+	MessageText string `json:"message_text"`
+	SentAt      string `json:"sent_at"`
 }
 
 type RegisterChatPayload struct {

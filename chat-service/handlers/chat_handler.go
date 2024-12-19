@@ -105,7 +105,7 @@ func (c *ChatHandler) HandlerSendMessage(w http.ResponseWriter, r *http.Request)
 	}
 
 	message.UserID = userID
-	message.SentAt = time.Now()
+	message.SentAt = time.Now().Format("2006-01-02 15:04:05")
 
 	err = c.store.SendMessage(message)
 	if err != nil {
