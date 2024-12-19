@@ -67,7 +67,7 @@ const ParticipantsPage = () => {
     }
     fetchParticipants();
     fetchAllUsers();
-  }, []);
+  }, [participants, availableUsers]);
 
   const fetchAllUsers = async () => {
     let { data }: { data: string[] } = await axios.get(
@@ -77,7 +77,12 @@ const ParticipantsPage = () => {
       }
     );
     data = data.filter(username => username !== currentUsername);
-    setAvailableUsers(data);
+    const newData: string[] = [];
+    for (const element of data) {
+      if (!participants.map(item => item.Username).includes(element))
+        newData.push(element);
+    }
+    setAvailableUsers(newData);
   };
 
   const fetchParticipants = async () => {

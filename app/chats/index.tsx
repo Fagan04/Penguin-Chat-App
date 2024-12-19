@@ -16,7 +16,7 @@ import showSuccessMessage from "@/utils/showSuccessMessage";
 import axios from "axios";
 import { chatServiceHost } from "@/constants/backendUrl";
 import { Chat } from "@/types/Chat";
-import { io } from "socket.io-client";
+import PenguinImage from "@/assets/images/penguin_profile.webp";
 
 const ChatListScreen = () => {
   const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
@@ -43,7 +43,8 @@ const ChatListScreen = () => {
           setFilteredChats(data);
         }
       };
-      getData();
+      const interval = setInterval(() => getData(), 1000);
+      return () => clearInterval(interval);
     } catch (error) {
       console.log(error);
     }
@@ -107,14 +108,11 @@ const ChatListScreen = () => {
       onPress={() => router.push(`/chats/${item.id}`)}
       style={styles.chatItem}
     >
-      <Image
-        source={{ uri: "https://via.placeholder.com/50" }}
-        style={styles.avatar}
-      />
+      <Image source={PenguinImage} style={styles.avatar} />
       <View style={styles.chatDetails}>
         <Text style={styles.chatName}>{item.chat_name}</Text>
         <Text style={true ? styles.chatMessageUnread : styles.chatMessage}>
-          {"salam"}
+          salam
         </Text>
       </View>
       {true && <View style={styles.unreadBadge} />}
@@ -129,10 +127,7 @@ const ChatListScreen = () => {
           <MaterialIcons name="logout" size={24} color="black" />
         </TouchableOpacity>
         <Link href="/login">
-          <Image
-            source={{ uri: "https://via.placeholder.com/50" }} // Replace with a user avatar image
-            style={styles.profilePicture}
-          />
+          <Image source={PenguinImage} style={styles.profilePicture} />
         </Link>
       </View>
 

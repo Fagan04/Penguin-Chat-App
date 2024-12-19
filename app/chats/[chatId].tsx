@@ -14,7 +14,6 @@ import {
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { useGlobalContext } from "@/context/GlobalProvider";
-import { Chat } from "@/types/Chat";
 import axios from "axios";
 import { chatServiceHost } from "@/constants/backendUrl";
 
@@ -41,6 +40,7 @@ const ChatScreen = () => {
       return;
     }
     setCurrentChat(chat);
+    fetchMessages();
   }, []);
 
   const messages = [
@@ -82,7 +82,7 @@ const ChatScreen = () => {
       try {
         await axios.post(
           `${chatServiceHost}/sendMessage`,
-          { chatId, message },
+          { chat_id: Number(chatId), message_text: message },
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } catch (error) {
@@ -90,6 +90,23 @@ const ChatScreen = () => {
       } finally {
         setMessage("");
       }
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const { data } = await axios.get(
+        `${chatServiceHost}/getMessagesGroupedByChat`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      console.log(data);
+    } catch (err) {
+      console.log("Error");
+      console.error(err);
     }
   };
 
