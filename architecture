@@ -1,9 +1,5 @@
 chat-application/
 │
-├── api-gateway/                
-│   ├── main.go                  
-│   └── routes/
-│       └── gateway_router.go    
 │
 ├── user-service/                
 │   ├── main.go
@@ -19,24 +15,14 @@ chat-application/
 │   ├── handlers/
 │   │   └── chat_handlers.go     
 │   ├── models/
-│   │   ├── message.go
+│   │   ├── store.go
 │   │   └── chat.go              
 │   ├── websocket/
-│   │   └── websocket.go         
-│   └── repository/
-│       ├── message_repository.go
-│       └── chat_repository.go   
-│
-├── notification-service/        
-│   ├── main.go
-│   ├── handlers/
-│   │   └── notification_handlers.go 
-│   └── events/
-│       └── event_listener.go    
+│      └── websocket.go         
 │
 ├── database/                    
-│   └── sqlite/                  
-│       └── sqlite_connection.go
+│   └── user.db
+|   |__ chats.db
 │
 └── common/                      
     ├── middleware/              
