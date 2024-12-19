@@ -41,6 +41,7 @@ const Login = () => {
         });
       showSuccessMessage(data.message);
       setToken(data.token);
+      localStorage.setItem("token", JSON.stringify(data.token));
       router.replace("/chats");
     } catch (error) {
       if (axios.isAxiosError(error)) {

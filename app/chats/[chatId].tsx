@@ -12,26 +12,43 @@ import {
   Keyboard,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
-import { Link, router, useLocalSearchParams } from "expo-router";
+import { Link, Redirect, router, useLocalSearchParams, useNavigation, useRootNavigationState } from "expo-router";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import axios from "axios";
 import { chatServiceHost } from "@/constants/backendUrl";
+import { jwtDecode } from "jwt-decode";
+
+type Chat = {
+  chat_id: number,
+  username: string,
+  message_text: string,
+  message_id: number,
+}
+
 
 const ChatScreen = () => {
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Chat[]>([]);
   const flatListRef = useRef<FlatList>(null);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   const { chatId } = useLocalSearchParams();
 
+  
+  
   const context = useGlobalContext();
   if (context == undefined) throw new Error("Context not defined");
-
+  
   const { chats, token, currentChat, setCurrentChat } = context;
+  let currentUsername = ""
+  if (token)
+  {
+    const { username: _ }: { username: string } = jwtDecode(token);
+    currentUsername = _;
+  }
 
   useEffect(() => {
     if (!token) {
-      router.replace("/");
       return;
     }
     const chat = chats.find(c => c.id.toString() === chatId);
@@ -40,40 +57,22 @@ const ChatScreen = () => {
       return;
     }
     setCurrentChat(chat);
-    fetchMessages();
-  }, []);
+  }, [token]);
 
-  const messages = [
-    {
-      id: "1",
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam",
-      isMine: false,
-    },
-    {
-      id: "2",
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam",
-      isMine: true,
-    },
-    {
-      id: "3",
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam",
-      isMine: false,
-    },
-    {
-      id: "4",
-      text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit ut aliquam",
-      isMine: true,
-    },
-  ];
+  useEffect(() => {
+    const interval = setInterval(() => fetchMessages(), 1000);
+    return () => clearInterval(interval);
+  }, [token])
 
-  const renderMessage = ({ item }: { item: any }) => (
+  const renderMessage = ({ item }: { item: {message_text:string, username:string, message_id:number} }) => (
     <View
       style={[
         styles.messageBubble,
-        item.isMine ? styles.myMessage : styles.theirMessage,
+        item.username === currentUsername ? styles.myMessage : styles.theirMessage,
       ]}
     >
-      <Text style={styles.messageText}>{item.text}</Text>
+      <Text style={styles.author}>{item.username}</Text>
+      <Text style={item.username === currentUsername ? styles.messageText : styles.otherMessageText}>{item.message_text}</Text>
     </View>
   );
 
@@ -94,19 +93,24 @@ const ChatScreen = () => {
   };
 
   const fetchMessages = async () => {
-    try {
-      const { data } = await axios.get(
-        `${chatServiceHost}/getMessagesGroupedByChat`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      console.log(data);
-    } catch (err) {
-      console.log("Error");
-      console.error(err);
+    if (token)
+    {
+      try {
+        const { data }: {data: any} = await axios.get(
+          `${chatServiceHost}/getMessagesGroupedByChat`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const curr = data[0].filter(i => i.chat_id == Number(chatId))
+        setMessages(curr)
+  
+      } catch (err) {
+        console.log("Error");
+        console.error(err);
+      }
     }
   };
 
@@ -144,7 +148,7 @@ const ChatScreen = () => {
         <ImageBackground
           source={require("../../assets/images/chat_bg.png")}
           style={styles.background}
-          resizeMode="cover"
+          resizeMode="repeat"
           blurRadius={1.1}
           imageStyle={{ opacity: 0.5 }}
         />
@@ -167,7 +171,7 @@ const ChatScreen = () => {
         <FlatList
           ref={flatListRef}
           data={messages}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.message_id.toString()}
           renderItem={renderMessage}
           contentContainerStyle={styles.messagesContainer}
           showsVerticalScrollIndicator={false}
@@ -209,6 +213,8 @@ const styles = StyleSheet.create({
   },
   background: {
     flex: 1,
+    height: "100%",
+    width: "100%",
   },
   header: {
     flexDirection: "row",
@@ -274,6 +280,16 @@ const styles = StyleSheet.create({
     backgroundColor: "#f7f7f7",
     borderRadius: 20,
   },
+  author: {
+    color: "yellow",
+    textAlign: "right",
+    fontSize: 12,
+    marginBottom: 6
+  },
+  otherMessageText: {
+    fontSize: 14,
+    color: "black"
+  }
 });
 
 export default ChatScreen;

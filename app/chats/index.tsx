@@ -24,60 +24,33 @@ const ChatListScreen = () => {
   const context = useGlobalContext();
   if (context == undefined) throw new Error("Context not defined");
 
-  const { token, setToken, chats, setChats, setConnection, connection } =
+  const { token, setToken, chats, setChats } =
     context;
 
   useEffect(() => {
-    if (!token) router.replace("/");
+    if (!token) return
   }, [token]);
 
   useEffect(() => {
     try {
-      const getData = async () => {
-        const { data }: { data: Chat[] | { message: string } } =
-          await axios.get(`${chatServiceHost}/accessChat`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        if (Array.isArray(data)) {
-          setChats(data);
-          setFilteredChats(data);
-        }
-      };
-      const interval = setInterval(() => getData(), 1000);
-      return () => clearInterval(interval);
+      if (token) {
+        const getData = async () => {
+          const { data }: { data: Chat[] | { message: string } } =
+            await axios.get(`${chatServiceHost}/accessChat`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+          if (Array.isArray(data)) {
+            setChats(data);
+            setFilteredChats(data);
+          }
+        };
+        const interval = setInterval(() => getData(), 1000);
+        return () => clearInterval(interval);
+      }
     } catch (error) {
-      console.log(error);
     }
-  }, []);
+  }, [token]);
 
-  // todo: WEBSOCKET
-  useEffect(() => {
-    try {
-      const ws = new WebSocket("ws://192.168.31.208:8081/ws?chatID=1", [
-        "Authorization",
-        `Bearer ${token}`,
-      ]);
-
-      ws.addEventListener("error", ev => {
-        console.error(ev);
-      });
-
-      ws.addEventListener("text", () => {
-        console.log("NEW TEXT WEBSOCKET");
-      });
-
-      ws.addEventListener("open", () => {
-        setConnection(ws);
-        console.log("OPEN");
-      });
-
-      showSuccessMessage("Successfull connection");
-      return ws.close;
-    } catch (error) {
-      console.log("Websoket error", error);
-      showSuccessMessage("Failed to connect", false);
-    }
-  }, []);
 
   function handleChangeSearch(value: string) {
     let copyChats = [...chats];
@@ -110,11 +83,7 @@ const ChatListScreen = () => {
       <Image source={PenguinImage} style={styles.avatar} />
       <View style={styles.chatDetails}>
         <Text style={styles.chatName}>{item.chat_name}</Text>
-        <Text style={true ? styles.chatMessageUnread : styles.chatMessage}>
-          salam
-        </Text>
       </View>
-      {true && <View style={styles.unreadBadge} />}
     </TouchableOpacity>
   );
 

@@ -36,8 +36,8 @@ const GlobalProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const getData = async () => {
-      const data = await AsyncStorage.getItem("token");
-      if (data) setToken(data);
+      const data = localStorage.getItem("token");
+      if (data) setToken(JSON.parse(data));
     };
     getData();
   }, []);
