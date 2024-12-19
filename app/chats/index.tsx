@@ -51,7 +51,6 @@ const ChatListScreen = () => {
   }, []);
 
   // todo: WEBSOCKET
-
   useEffect(() => {
     try {
       const ws = new WebSocket("ws://192.168.31.208:8081/ws?chatID=1", [
