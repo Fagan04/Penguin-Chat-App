@@ -126,9 +126,7 @@ const ChatListScreen = () => {
         <TouchableOpacity onPress={handleLogout}>
           <MaterialIcons name="logout" size={24} color="black" />
         </TouchableOpacity>
-        <Link href="/login">
-          <Image source={PenguinImage} style={styles.profilePicture} />
-        </Link>
+        <Image source={PenguinImage} style={styles.profilePicture} />
       </View>
 
       {/* Chats Section */}
