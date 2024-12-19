@@ -16,6 +16,7 @@ import showSuccessMessage from "@/utils/showSuccessMessage";
 import axios from "axios";
 import { chatServiceHost } from "@/constants/backendUrl";
 import { Chat } from "@/types/Chat";
+import { io } from "socket.io-client";
 
 const ChatListScreen = () => {
   const [filteredChats, setFilteredChats] = useState<Chat[]>([]);
@@ -23,7 +24,8 @@ const ChatListScreen = () => {
   const context = useGlobalContext();
   if (context == undefined) throw new Error("Context not defined");
 
-  const { token, setToken, chats, setChats } = context;
+  const { token, setToken, chats, setChats, setConnection, connection } =
+    context;
 
   useEffect(() => {
     if (!token) router.replace("/");
@@ -47,19 +49,34 @@ const ChatListScreen = () => {
     }
   }, []);
 
+  // todo: WEBSOCKET
+
   useEffect(() => {
-    const getData = async () => {
-      try {
-        const { data } = await axios.get(
-          `${chatServiceHost}/getMessagesGroupedByChat`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        console.log(data);
-      } catch (error) {
-        console.log(error);
-      }
-    };
-    getData();
+    try {
+      const ws = new WebSocket("ws://192.168.31.208:8081/ws?chatID=1", [
+        "Authorization",
+        `Bearer ${token}`,
+      ]);
+
+      ws.addEventListener("error", ev => {
+        console.error(ev);
+      });
+
+      ws.addEventListener("text", () => {
+        console.log("NEW TEXT WEBSOCKET");
+      });
+
+      ws.addEventListener("open", () => {
+        setConnection(ws);
+        console.log("OPEN");
+      });
+
+      showSuccessMessage("Successfull connection");
+      return ws.close;
+    } catch (error) {
+      console.log("Websoket error", error);
+      showSuccessMessage("Failed to connect", false);
+    }
   }, []);
 
   function handleChangeSearch(value: string) {

@@ -16,12 +16,13 @@ interface GlobalContextProps {
   setChats: (chats: Chat[]) => void;
   currentChat: Chat | undefined;
   setCurrentChat: (chats: Chat) => void;
+  connection: WebSocket | undefined;
+  setConnection: (connection: WebSocket) => void;
 }
 
-type User = {
-  id: number | null;
-  name: string | null;
-  email: string | null;
+type Message = {
+  message: string;
+  user_id: number;
 };
 
 const GlobalContext = createContext<GlobalContextProps | undefined>(undefined);
@@ -31,6 +32,7 @@ const GlobalProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState("");
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChat, setCurrentChat] = useState<Chat>();
+  const [connection, setConnection] = useState<WebSocket>();
 
   useEffect(() => {
     const getData = async () => {
@@ -49,6 +51,8 @@ const GlobalProvider = ({ children }: { children: ReactNode }) => {
         setChats,
         currentChat,
         setCurrentChat,
+        connection,
+        setConnection,
       }}
     >
       {children}

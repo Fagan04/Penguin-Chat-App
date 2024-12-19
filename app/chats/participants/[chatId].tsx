@@ -7,50 +7,56 @@ import {
   FlatList,
   TextInput,
   Modal,
-  Alert,
-  TouchableWithoutFeedback,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import axios from "axios";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import { chatServiceHost } from "@/constants/backendUrl";
+import { Participant } from "@/types/Participant";
+import showSuccessMessage from "@/utils/showSuccessMessage";
+import { Owner } from "@/types/Owner";
+import { jwtDecode } from "jwt-decode";
 
 const ParticipantsPage = () => {
-  const [participants, setParticipants] = useState([]);
+  const [participants, setParticipants] = useState<Participant[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalVisible, setAddModalVisible] = useState(false);
-  const [newParticipant, setNewParticipant] = useState("");
-  const [availableUsers, setAvailableUsers] = useState([]); // List of all users
-  const [selectedUsers, setSelectedUsers] = useState<any>([]);
+  const [availableUsers, setAvailableUsers] = useState<string[]>([]); // List of all users
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [owner, setOwner] = useState<Owner>();
 
   const { chatId } = useLocalSearchParams();
+
   const context = useGlobalContext();
   if (context == undefined) throw new Error("Context not defined");
 
   const { token } = context;
+  const { username: currentUsername }: { username: string } = jwtDecode(token);
 
-  const toggleUserSelection = (userId: any) => {
-    setSelectedUsers((prev: any) =>
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUsers((prev: string[]) =>
       prev.includes(userId)
-        ? prev.filter((id: any) => id !== userId)
+        ? prev.filter((id: string) => id !== userId)
         : [...prev, userId]
     );
   };
 
   const handleAddSelectedParticipants = async () => {
     try {
-      await axios.post(
-        `${chatServiceHost}/${chatId}/addParticipants`,
-        { userIds: selectedUsers },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      for (const username of selectedUsers) {
+        await axios.post(
+          `${chatServiceHost}/addUserToChat`,
+          { username: username, chat_id: Number(chatId) },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
       setSelectedUsers([]);
       setAddModalVisible(false);
       fetchParticipants();
     } catch (error) {
       console.error("Failed to add participants", error);
-      Alert.alert("Error", "Could not add participants. Please try again.");
+      showSuccessMessage("Failed to add participant(s).", false);
     }
   };
 
@@ -60,48 +66,56 @@ const ParticipantsPage = () => {
       return;
     }
     fetchParticipants();
+    fetchAllUsers();
   }, []);
+
+  const fetchAllUsers = async () => {
+    let { data }: { data: string[] } = await axios.get(
+      `${chatServiceHost}/getAllUsers`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    data = data.filter(username => username !== currentUsername);
+    setAvailableUsers(data);
+  };
 
   const fetchParticipants = async () => {
     try {
-      const { data } = await axios.get(`${chatServiceHost}/getChatMembers`, {
+      const {
+        data,
+      }: {
+        data: {
+          owner_id: number;
+          owner_username: string;
+          participants: Participant[];
+        };
+      } = await axios.get(`${chatServiceHost}/getChatMembers`, {
         headers: { Authorization: `Bearer ${token}`, chat_id: chatId },
       });
-      setParticipants(data);
-      console.log(data);
+      setOwner({
+        owner_id: data.owner_id,
+        owner_username: data.owner_username,
+      });
+      setParticipants(data.participants);
     } catch (error) {
       console.error("Failed to fetch participants", error);
     }
   };
 
-  const addParticipant = async () => {
-    if (!newParticipant.trim()) {
-      Alert.alert("Error", "Participant ID cannot be empty.");
-      return;
-    }
-    try {
-      await axios.post(
-        `${chatServiceHost}/chat/${chatId}/addParticipant`,
-        { userId: newParticipant },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setNewParticipant("");
-      setAddModalVisible(false);
-      //   fetchParticipants();
-    } catch (error) {
-      console.error("Failed to add participant", error);
-      Alert.alert("Error", "Could not add participant. Please try again.");
-    }
-  };
-
-  const renderParticipant = ({ item }: { item: any }) => (
+  const renderParticipant = ({ item }: { item: Participant }) => (
     <View style={styles.participantItem}>
-      <Text style={styles.participantName}>{item.name}</Text>
+      <Text style={styles.participantName}>{item.Username}</Text>
+      {item.UserID === owner?.owner_id ? (
+        <Text style={styles.participantName}>Owner</Text>
+      ) : (
+        ""
+      )}
     </View>
   );
 
-  const filteredUsers = availableUsers.filter((user: any) =>
-    user.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = availableUsers.filter((user: string) =>
+    user.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -118,7 +132,7 @@ const ParticipantsPage = () => {
 
       <FlatList
         data={participants}
-        keyExtractor={item => item.id.toString()}
+        keyExtractor={item => item.UserID.toString()}
         renderItem={renderParticipant}
         contentContainerStyle={styles.participantsList}
       />
@@ -140,16 +154,16 @@ const ParticipantsPage = () => {
             />
             <FlatList
               data={filteredUsers} // Assuming `availableUsers` is a list of users fetched from the server
-              keyExtractor={item => item.id.toString()}
-              renderItem={({ item }: { item: any }) => (
+              keyExtractor={item => item}
+              renderItem={({ item }: { item: string }) => (
                 <TouchableOpacity
                   style={styles.userItem}
-                  onPress={() => toggleUserSelection(item.id)}
+                  onPress={() => toggleUserSelection(item)}
                 >
-                  <Text style={styles.userName}>{item.name}</Text>
+                  <Text style={styles.userName}>{item}</Text>
                   <Ionicons
                     name={
-                      selectedUsers.includes(item.id)
+                      selectedUsers.includes(item)
                         ? "checkbox"
                         : "square-outline"
                     }
@@ -202,6 +216,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   participantItem: {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
